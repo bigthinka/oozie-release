@@ -108,10 +108,10 @@ public class TestCoordELEvaluator extends XTestCase {
 
     public void testCreateURIELEvaluator() throws Exception {
         ELEvaluator eval = CoordELEvaluator
-                .createURIELEvaluator("2009-08-09T23:59Z");
+        		.createURIELEvaluator("2009-08-09T21:59Z", "Europe/Rome");
         String expr = "hdfs://p1/p2/${YEAR}/${MONTH}/${DAY}/${HOUR}/${MINUTE}/";
         // System.out.println("OUTPUT "+ eval.evaluate(expr, String.class));
-        assertEquals("hdfs://p1/p2/2009/08/09/23/59/", CoordELFunctions
+        assertEquals("hdfs://p1/p2/2009/08/09/22/59/", CoordELFunctions
                 .evalAndWrap(eval, expr));
 
         expr = "hdfs://p1/p2/${YEAR}/${MONTH}/${DAY}/${MINUTE}/";

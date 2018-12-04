@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.CoordinatorActionBean;
@@ -252,12 +253,21 @@ public class CoordELEvaluator {
      * @return configured ELEvaluator
      * @throws Exception If there is any date-time string in wrong format, the exception is thrown
      */
-    public static ELEvaluator createURIELEvaluator(String strDate) throws Exception {
+    public static ELEvaluator createURIELEvaluator(String strDate, String timeZoneId) throws Exception {
         ELEvaluator eval = new ELEvaluator();
         Calendar date = Calendar.getInstance(DateUtils.getOozieProcessingTimeZone());
         // always???
         date.setTime(DateUtils.parseDateOozieTZ(strDate));
+        
+        //MH date set to config for timezone
+        // settheTimezone from conf, putting here doesn't resolve problem of generating correct number of instances
+        // ACTUALLY as far as I can tell it should because tz is used to calculate instances just they are always utc
+        TimeZone tz = TimeZone.getTimeZone(timeZoneId);
+        date.setTimeZone(tz);
+        
         eval.setVariable("YEAR", date.get(Calendar.YEAR));
+        eval.setVariable("WEEK", date.get(Calendar.WEEK_OF_YEAR));
+        eval.setVariable("WEEKYEAR", DateUtils.getWeekYear(date));
         eval.setVariable("MONTH", make2Digits(date.get(Calendar.MONTH) + 1));
         eval.setVariable("DAY", make2Digits(date.get(Calendar.DAY_OF_MONTH)));
         eval.setVariable("HOUR", make2Digits(date.get(Calendar.HOUR_OF_DAY)));

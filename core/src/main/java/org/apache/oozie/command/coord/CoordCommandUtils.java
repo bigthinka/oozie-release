@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Date;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.CoordinatorActionBean;
@@ -400,6 +402,8 @@ public class CoordCommandUtils {
                 event.getNamespace());
         URIHandlerService uriService = Services.get().get(URIHandlerService.class);
 
+        Set<String> uniqueUris = new HashSet<String>();
+        
         for (int i = 0; i < instanceList.length; i++) {
             if (instanceList[i].trim().length() == 0) {
                 continue;
@@ -412,18 +416,31 @@ public class CoordCommandUtils {
                 unresolvedInstances.append(instanceList[i]);
                 continue;
             }
-            ELEvaluator eval = CoordELEvaluator.createURIELEvaluator(instanceList[i]);
-            if (uris.length() > 0) {
-                uris.append(CoordELFunctions.INSTANCE_SEPARATOR);
-                urisWithDoneFlag.append(CoordELFunctions.INSTANCE_SEPARATOR);
-            }
+
+            //MH Adjusted to pass timezone to evaluator and ensure uris are unique
+            String datasetTz = event.getChild("dataset", event.getNamespace()).getAttributeValue("timezone");
+            ELEvaluator eval = CoordELEvaluator.createURIELEvaluator(instanceList[i], datasetTz);
 
             String uriPath = CoordELFunctions.evalAndWrap(eval, event.getChild("dataset", event.getNamespace())
                     .getChild("uri-template", event.getNamespace()).getTextTrim());
             URIHandler uriHandler = uriService.getURIHandler(uriPath);
             uriHandler.validate(uriPath);
-            uris.append(uriPath);
-            urisWithDoneFlag.append(uriHandler.getURIWithDoneFlag(uriPath, CoordUtils.getDoneFlag(doneFlagElement)));
+            
+            if (!uniqueUris.contains(uriPath)) {
+                if (uris.length() > 0) {
+                    uris.append(CoordELFunctions.INSTANCE_SEPARATOR);
+                    urisWithDoneFlag.append(CoordELFunctions.INSTANCE_SEPARATOR);
+                }
+                uris.append(uriPath);
+                uniqueUris.add(uriPath);
+/*
+                if (doneFlag.length() > 0) {
+                    uriPath += "/" + doneFlag;
+                }
+*/
+                urisWithDoneFlag.append(uriHandler.getURIWithDoneFlag(uriPath, CoordUtils.getDoneFlag(doneFlagElement)));
+            }
+            //MH End
         }
         return uris.toString();
     }

@@ -104,9 +104,9 @@ public class DateUtils {
         return dateFormat;
     }
 
-    private static DateFormat getSpecificDateFormat(String format) {
+    private static DateFormat getSpecificDateFormat(String format, TimeZone timeZone) {
         DateFormat dateFormat = new SimpleDateFormat(format);
-        dateFormat.setTimeZone(ACTIVE_TIMEZONE);
+        dateFormat.setTimeZone(timeZone);
         return dateFormat;
     }
 
@@ -200,8 +200,17 @@ public class DateUtils {
      * @return the string for the given date using the specified format mask,
      * <code>NULL</code> if the {@link Date} instance was <code>NULL</code>
      */
+    public static String formatDateCustom(Date d, String format, TimeZone tz) {
+        Calendar cal = Calendar.getInstance(tz);
+        cal.setTime(d);
+        String weekYear = "" + getWeekYear(cal);
+        format = format.replaceAll("YYYY", weekYear);
+        format = format.replaceAll("YY", "" + weekYear.substring(weekYear.length() -2));
+        return (d != null) ? getSpecificDateFormat(format, tz).format(d) : "NULL";
+    }
+    
     public static String formatDateCustom(Date d, String format) {
-        return (d != null) ? getSpecificDateFormat(format).format(d) : "NULL";
+    	return formatDateCustom(d, format, ACTIVE_TIMEZONE);
     }
 
     /**
@@ -356,6 +365,20 @@ public class DateUtils {
             return new Timestamp(d.getTime());
         }
         return null;
+    }
+    
+    /**
+     * Push the year +1 in first week of year when in last year in real terms but new year in week terms
+     * @param date
+     * @return 
+     */
+    public static int getWeekYear(Calendar date)
+    {
+        if (date.get(Calendar.WEEK_OF_YEAR) == 1 && date.get(Calendar.DAY_OF_MONTH) > 7) {
+            return date.get(Calendar.YEAR) +1;
+        } else {
+            return date.get(Calendar.YEAR);
+        }
     }
 
 }

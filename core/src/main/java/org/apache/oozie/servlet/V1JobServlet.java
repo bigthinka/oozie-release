@@ -824,6 +824,10 @@ public class V1JobServlet extends BaseJobServlet {
         String orderStr = request.getParameter(RestConstants.ORDER_PARAM);
         boolean order = (orderStr != null && orderStr.equals("desc")) ? true : false;
         int offset = (startStr != null) ? Integer.parseInt(startStr) : 1;
+        if (offset < 0) {
+        	CoordinatorJobBean Job = coordEngine.getCoordJob(jobId);
+        	offset = Job.getLastActionNumber() + offset; // Start is negative 
+        }
         offset = (offset < 1) ? 1 : offset;
         // Get default number of coordinator actions to be retrieved
         int defaultLen = ConfigurationService.getInt(COORD_ACTIONS_DEFAULT_LENGTH);

@@ -26,6 +26,8 @@ public class CoordELConstants {
     public static final String SUBMIT_HOUR = "${HOUR}";
     public static final String SUBMIT_MONTH = "${MONTH}";
     public static final String SUBMIT_DAY = "${DAY}";
+    public static final String SUBMIT_WEEK = "${WEEK}";
+    public static final String SUBMIT_WEEKYEAR = "${WEEKYEAR}";
     public static final String SUBMIT_YEAR = "${YEAR}";
 
     public static final int SUBMIT_MINUTES = 1;

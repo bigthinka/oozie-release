@@ -196,6 +196,10 @@ public class CoordOldInputDependency implements CoordInputDependency {
         String existSeparator = "", nonExistSeparator = "";
         String user = ParamChecker.notEmpty(conf.get(OozieClient.USER_NAME), OozieClient.USER_NAME);
         for (int i = 0; i < uriList.length; i++) {
+        	if (uriList[i].isEmpty()) {
+        		log.error("[" + coordAction.getId() + "]::checkListOfPaths::skipping empty path in: [" + String.join(",", uriList)+" ]\n");
+        		continue;
+        	}
             if (allExists) {
                 allExists = pathExists(coordAction, uriList[i], conf, user);
                 log.info("[" + coordAction.getId() + "]::ActionInputCheck:: File:" + uriList[i] + ", Exists? :"

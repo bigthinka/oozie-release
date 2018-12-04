@@ -333,7 +333,7 @@ public class CoordELFunctions {
             Context uriContext = null;
             try {
                 while (instance >= checkedInstance && !currentThread.isInterrupted()) {
-                    ELEvaluator uriEval = getUriEvaluator(nominalInstanceCal);
+                	ELEvaluator uriEval = getUriEvaluator(nominalInstanceCal, getDatasetTZ());
                     String uriPath = uriEval.evaluate(uriTemplate, String.class);
                     if (uriHandler == null) {
                         URI uri = new URI(uriPath);
@@ -434,6 +434,80 @@ public class CoordELFunctions {
     public static String ph3_coord_formatTime(String dateTimeStr, String format)
             throws Exception {
         return ph2_coord_formatTime(dateTimeStr, format);
+    }
+
+    /**
+     * Parses a oozie timestamp always UTC and converts to timezone still has utc but isn't really
+     * @param dateTimeStr
+     * @param format
+     * @return
+     * @throws Exception
+     */
+    public static String ph2_coord_formatTimeInTz(String dateTimeStr, String timezoneStr, String format)
+    throws Exception {
+        TimeZone tz = TimeZone.getTimeZone(timezoneStr);
+        Date dateTime = DateUtils.parseDateOozieTZ(dateTimeStr);
+        return DateUtils.formatDateCustom(dateTime, format, tz);
+    }
+     public static String ph3_coord_formatTimeInTz(String dateTimeStr, String timezoneStr, String format)
+        throws Exception {
+        return ph2_coord_formatTimeInTz(dateTimeStr, timezoneStr, format);
+    }
+    
+    /**
+     * Wrapper for backwards compatibility of formatTimeInTz as formatTimeTz
+     * @param dateTimeStr
+     * @param format
+     * @return
+     * @throws Exception
+     */
+    public static String ph2_coord_formatTimeTz(String dateTimeStr, String timezoneStr, String format)
+    throws Exception {
+    	return ph2_coord_formatTimeInTz(dateTimeStr, timezoneStr, format);
+    }
+     public static String ph3_coord_formatTimeTz(String dateTimeStr, String timezoneStr, String format)
+        throws Exception {
+        return ph3_coord_formatTimeInTz(dateTimeStr, timezoneStr, format);
+    }
+    
+    /**
+     * Formats an offset given time into timezone
+     * Notice order must first convert the time into timezone then apply offset 
+     * @param dateTimeStr
+     * @param format
+     * @return
+     * @throws Exception
+     */
+    public static String ph2_coord_formatOffsetTimeInTz(String dateTimeStr,int offset, String offsetUnit, String timezoneStr, String format)
+    throws Exception {
+        TimeZone tz = TimeZone.getTimeZone(timezoneStr);
+        Date dateTime = DateUtils.parseDateOozieTZ(dateTimeStr);
+        
+        String dateTimeTz = DateUtils.formatDateCustom(dateTime, DateUtils.ISO8601_UTC_MASK, tz);
+        return ph2_coord_formatTime(ph2_coord_dateOffset(dateTimeTz, offset, offsetUnit), format);
+    }
+     public static String ph3_coord_formatOffsetTimeInTz(String dateTimeStr,int offset, String offsetUnit, String timezoneStr, String format)
+        throws Exception {
+        return ph2_coord_formatOffsetTimeInTz(dateTimeStr, offset, offsetUnit, timezoneStr,format);
+    }
+
+ 	/**
+ 	 * Formats an offset nominal time into timezone
+ 	 * @param offset
+ 	 * @param offsetUnit
+ 	 * @param timezoneStr
+ 	 * @param format
+ 	 * @return
+ 	 * @throws Exception
+ 	 */
+    public static String ph2_coord_formatOffsetNominalTimeInTz(int offset, String offsetUnit, String timezoneStr, String format)
+    throws Exception {
+        String nominalTime = DateUtils.formatDateOozieTZ(getActionCreationtime());
+        return ph2_coord_formatOffsetTimeInTz(nominalTime, offset, offsetUnit, timezoneStr,format);
+    }
+     public static String ph3_coord_formatOffsetNominalTimeInTz(int offset, String offsetUnit, String timezoneStr, String format)
+        throws Exception {
+        return ph2_coord_formatOffsetNominalTimeInTz(offset, offsetUnit, timezoneStr,format);
     }
 
     /**
@@ -846,6 +920,26 @@ public class CoordELFunctions {
         return echoUnResolved("formatTime", "'"+dateTime+"'" + " , " + format);
     }
 
+    public static String ph1_coord_formatTimeTz_echo(String dateTime, String timezoneStr, String format) {
+        // Quote the dateTime value since it would contain a ':'.
+        return echoUnResolved("formatTimeTz", "'"+dateTime+"'" + " , " + timezoneStr + " , " + format);
+    }
+    
+    public static String ph1_coord_formatTimeInTz_echo(String dateTime, String timezoneStr, String format) {
+        // Quote the dateTime value since it would contain a ':'.
+        return echoUnResolved("formatTimeInTz", "'"+dateTime+"'" + " , " + timezoneStr + " , " + format);
+    }
+    
+    public static String ph1_coord_formatOffsetTimeInTz_echo(String dateTimeStr,int offset, String offsetUnit, String timezoneStr, String format) {
+        // Quote the dateTime value since it would contain a ':'.
+        return echoUnResolved("formatOffsetTimeInTz", "'"+dateTimeStr+"'" + " , " + offset + " , " + offsetUnit + " , " + timezoneStr + " , " + format);
+    }
+    
+    public static String ph1_coord_formatOffsetNominalTimeInTz_echo(int offset, String offsetUnit, String timezoneStr, String format) {
+        // Quote the dateTime value since it would contain a ':'.
+        return echoUnResolved("formatOffsetNominalTimeInTz", offset + " , " + offsetUnit + " , " + timezoneStr + " , " + format);
+    }
+    
     public static String ph1_coord_latest_echo(String n) {
         return echoUnResolved("latest", n);
     }
@@ -1001,8 +1095,10 @@ public class CoordELFunctions {
         final XLog LOG = XLog.getLog(CoordELFunctions.class);
         int datasetFrequency = getDSFrequency();// in minutes
         TimeUnit dsTimeUnit = getDSTimeUnit();
+        getDatasetTZ();
         int[] instCount = new int[1];// used as pass by ref
         Calendar nominalInstanceCal = getCurrentInstance(getActionCreationtime(), instCount);
+        //nominal time
         if (nominalInstanceCal == null) {
             LOG.warn("If the initial instance of the dataset is later than the nominal time, an empty string is"
                     + " returned. This means that no data is available at the current-instance specified by the user"
@@ -1141,7 +1237,7 @@ public class CoordELFunctions {
             Context uriContext = null;
             try {
                 while (nominalInstanceCal.compareTo(initInstance) >= 0 && !currentThread.isInterrupted()) {
-                    ELEvaluator uriEval = getUriEvaluator(nominalInstanceCal);
+                	ELEvaluator uriEval = getUriEvaluator(nominalInstanceCal, getDatasetTZ());
                     String uriPath = uriEval.evaluate(uriTemplate, String.class);
                     if (uriHandler == null) {
                         URI uri = new URI(uriPath);
@@ -1211,10 +1307,14 @@ public class CoordELFunctions {
      * @param tm
      * @return a new Evaluator to be used for URI-template evaluation
      */
-    private static ELEvaluator getUriEvaluator(Calendar tm) {
-        tm.setTimeZone(DateUtils.getOozieProcessingTimeZone());
+    private static ELEvaluator getUriEvaluator(Calendar tmOrig, TimeZone tz) {
+        Calendar tm = (Calendar) tmOrig.clone();
+        tm.setTimeZone(tz);
         ELEvaluator retEval = new ELEvaluator();
         retEval.setVariable("YEAR", tm.get(Calendar.YEAR));
+        retEval.setVariable("WEEKYEAR", DateUtils.getWeekYear(tm));
+        retEval.setVariable("WEEK", (tm.get(Calendar.WEEK_OF_YEAR)) < 10 ? "0" + (tm.get(Calendar.WEEK_OF_YEAR)) : (tm
+                .get(Calendar.WEEK_OF_YEAR)));
         retEval.setVariable("MONTH", (tm.get(Calendar.MONTH) + 1) < 10 ? "0" + (tm.get(Calendar.MONTH) + 1) : (tm
                 .get(Calendar.MONTH) + 1));
         retEval.setVariable("DAY", tm.get(Calendar.DAY_OF_MONTH) < 10 ? "0" + tm.get(Calendar.DAY_OF_MONTH) : tm
