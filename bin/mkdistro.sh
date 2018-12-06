@@ -65,7 +65,11 @@ cd ${BASEDIR}
 export DATETIME=`date -u "+%Y.%m.%d-%H:%M:%SGMT"`
 setRevUrl
 
-MVN_OPTS="-Dbuild.time=${DATETIME} -Dvc.revision=${VC_REV} -Dvc.url=${VC_URL} -DgenerateDocs"
+#NOTE that 3.0.1.0-187 is the Horton HDP release version which is appended to vanila version used 3.1.1.3.0.1.0-187
+#The base version should be taken from ambari
+#Review commit XX for changes required to poms
+HDP_VERSION="3.0.1.0-187"
+MVN_OPTS="-DskipTests -Dbuild.time=${DATETIME} -Dvc.revision=${VC_REV} -Dvc.url=${VC_URL} -DgenerateDocs -Dhadoop.version=3.1.1.${HDP_VERSION} -Dpig.version=0.16.0.${HDP_VERSION} -Dpig.classifier= -Dhive.version=3.1.0.${HDP_VERSION} -Dhbase.version=2.0.0.${HDP_VERSION} -Dsqoop.version=1.4.7.${HDP_VERSION} -Dsqoop.classifier=hadoop260 -Dtez.version=0.9.1.${HDP_VERSION} -Dgcs.version=1.9.0.${HDP_VERSION}"
 
 export DATETIME2=`date -u "+%Y%m%d-%H%M%SGMT"`
 mvn clean package assembly:single ${MVN_OPTS} "$@"
