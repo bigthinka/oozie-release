@@ -285,6 +285,8 @@ public class DagEngine extends BaseEngine {
         try {
             WorkflowJobBean wfBean = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId);
             Configuration wfConf = new XConfiguration(new StringReader(wfBean.getConf()));
+            wfConf.unset("oozie.wf.rerun.skip.nodes");
+            wfConf.unset("oozie.wf.rerun.failnodes");
             XConfiguration.copy(conf, wfConf);
             validateReRunConfiguration(wfConf);
             new ReRunXCommand(jobId, wfConf).call();
